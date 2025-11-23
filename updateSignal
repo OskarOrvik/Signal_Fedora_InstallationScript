@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+cd ~/Downloads ## To position yourself in an unimportant directory
+##
+##Choose the path to install the program. Change to ~/.local to install locally
+InstallationPath=/
+
+## Find current version of signal on the comuputer
+if [ -f  $InstallationPath/usr/share/doc/signal-desktop/changelog.gz ]; then
+    echo current version : 
+    sudo gunzip /usr/share/doc/signal-desktop/changelog.gz
+    sudo cat /usr/share/doc/signal-desktop/changelog | head -n 1
+
+elif [ -f $InstallationPath/usr/share/doc/signal-desktop/changelog ]; then
+    echo current version: 
+    sudo cat /usr/share/doc/signal-desktop/changelog | head -n 1     
+fi
+
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ## Esthetics
+
+## Find the URL for the latest version of signal which isn't a beta version
+latestVersion=$(curl -s https://updates.signal.org/desktop/apt/dists/xenial/main/binary-amd64/Packages.gz | zcat | grep Filename | sed 's_Filename: _https://updates.signal.org/desktop/apt/_' | grep -v "beta" | head -n 1)
+echo $latestVersion >> latestVersion ## Remove beta-pipeline to get the latest version
+## 
+echo Latest version available:
+echo $latestVersion
+
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+
+## Proceed if the version available is higher than the one you already own
+read -p "Do you want to process with the installation/update ? " -n 1 -r;
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+wget $latestVersion
+foo=$(ls | grep signal | grep .deb | head -n 1)
+exist=$(dnf list -q | grep dpkg.x86_64 | wc -l)
+if [ $exist -lt 1 ]; then
+sudo dnf install dpkg ## intall dpkg package if it isn't installed
+fi
+sudo dpkg-deb --extract $foo /
+fi
+rm $foo;
+rm latestVersion;
